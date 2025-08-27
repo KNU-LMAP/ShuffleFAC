@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+import yaml
 
 class GLU(nn.Module):
     def __init__(self, in_dim):
@@ -280,5 +280,10 @@ class CRNN(nn.Module):
 
         return strong.transpose(1, 2), weak
 
-
-
+if __name__ == "__main__":
+    path = '/home/baek/Desktop/Deepship/default.yaml'
+    with open(path, "r") as f:
+        configs = yaml.safe_load(f)
+    input = torch.randn([48,128,626])
+    net = CRNN(**configs["CRNN"])
+    output = net(input)
