@@ -1,7 +1,7 @@
 #Some codes are adopted from https://github.com/DCASE-REPO/DESED_task
 #model name == Frequency Dynamic Convolution CRNN
 
-#Auteur : Dongjun Kim, Donghyeon Lee
+#Author : Dongjun Kim, Donghyeon Lee
 
 import torch
 import torch.nn as nn
@@ -238,10 +238,10 @@ class CRNN(nn.Module):
 
         self.dropout = nn.Dropout(conv_dropout)
         self.sigmoid = nn.Sigmoid()
-        self.dense = nn.Linear(n_RNN_cell * 2, n_class)
+        self.dense = nn.Linear(n_RNN_cell * 1, n_class)
 
         if self.attention:
-            self.dense_softmax = nn.Linear(n_RNN_cell * 2, n_class)
+            self.dense_softmax = nn.Linear(n_RNN_cell * 1, n_class)
             if self.attention == "time":
                 self.softmax = nn.Softmax(dim=1)          # softmax on time dimension
             elif self.attention == "class":
@@ -264,9 +264,8 @@ class CRNN(nn.Module):
             x = x.permute(0, 2, 1) # x size : [bs, frames, chan]
 
         #rnn
-        x = self.rnn(x) #x size : [bs, frames, 2 * chan]
+        # x = self.rnn(x) #x size : [bs, frames, 2 * chan]
         x = self.dropout(x)
-
         #classifier
         strong = self.dense(x) #strong size : [bs, frames, n_class]
         strong = self.sigmoid(strong)
@@ -278,7 +277,7 @@ class CRNN(nn.Module):
         else:
             weak = strong.mean(1)
 
-        return strong.transpose(1, 2), weak
+        return weak
 
 if __name__ == "__main__":
     path = '/home/baek/Desktop/Deepship/default.yaml'

@@ -1,5 +1,5 @@
 CRNN:
-  n_class: 10
+  n_class: 4 # Deepship 의 class는 4개(cargo, passenger, tug, tanker)
   n_RNN_cell: 256
   n_RNN_layer: 2
   rec_dropout: 0
