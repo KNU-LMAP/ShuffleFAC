@@ -7,8 +7,8 @@ import soundfile as sf
 # -------------------------------
 # 설정값
 # -------------------------------
-RAW_ROOT = "/home/l13/deepship/dataset"                 # 원본 폴더 (class/REC/*.wav)
-OUT_ROOT = "/home/l13/deepship/Segments_5s_16k"  # 출력 루트
+RAW_ROOT = "/home/l13/deepship/dataset"                 # 원본 폴더 (class/REC/*.wav) 경로 수정
+OUT_ROOT = "/home/l13/deepship/Segments_5s_16k"         # 출력 루트 경로 수정
 CLASSES  = ["cargo", "passenger", "tanker", "tug"]      # 존재하는 클래스만 자동 처리
 SR       = 16000                                        # 타깃 샘플레이트
 WIN_SEC  = 5.0                                          # 고정 세그먼트 길이(초)
