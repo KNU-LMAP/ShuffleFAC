@@ -154,3 +154,4 @@ def count_parameters(model):
             continue
         total_params += parameter.numel()
     return total_params
+    
