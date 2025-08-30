@@ -18,4 +18,17 @@ CRNN:
 
 feats:
   freq_bins : 128
+
+feature:
+  sample_rate: 16000
+  sr: 16000           
+  n_window: 1024
+  hop_length: 160
+  f_min: 20.0
+  f_max: 8000.0
+  n_mels: 128
+  audio_max_len: 5
+  net_subsample: 4
+  frame_length: 1024
+  
   
