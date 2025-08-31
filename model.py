@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 import yaml
-
+import torchaudio
 """
 model name : FAC(Frequency Aware Convolution)
 Author : Dongjun Kim, DongHyeon Lee
@@ -167,13 +167,22 @@ class CRNN(nn.Module):
                  n_RNN_layer=2,
                  rec_dropout=0,
                  attention=True,
+                 specaugm_t_p=0.2,
+                 specaugm_t_l=5,
+                 specaugm_f_p=0.2,
+                 specaugm_f_l=10,
                  **convkwargs):
         super(CRNN, self).__init__()
         self.n_input_ch = n_input_ch
         self.attention = attention
         self.n_class = n_class
 
-        self.cnn = CNN(n_input_ch=n_input_ch, activation=activation, conv_dropout=conv_dropout, **convkwargs)
+        self.specaugm_t_p = specaugm_t_p
+        self.specaugm_t_l = specaugm_t_l
+        self.specaugm_f_p = specaugm_f_p
+        self.specaugm_f_l = specaugm_f_l
+
+        self.cnn = CNN(n_in_channel=n_input_ch, activation=activation, conv_dropout=conv_dropout, **convkwargs)
 
         self.dropout = nn.Dropout(conv_dropout)
         self.sigmoid = nn.Sigmoid()
@@ -186,18 +195,24 @@ class CRNN(nn.Module):
             elif self.attention == "class":
                 self.softmax = nn.Softmax(dim=-1)         # softmax on class dimension
 
+    def apply_specaugment(self, x):
+        timemask = torchaudio.transforms.TimeMasking(
+            self.specaugm_t_l, True, self.specaugm_t_p
+        )
+        freqmask = torchaudio.transforms.TimeMasking(
+            self.specaugm_f_l, True, self.specaugm_f_p
+        )  # use time masking also here
+        x = timemask(freqmask(x.transpose(1, -1)).transpose(1, -1))
+        return x
+
     def forward(self, x): #input size : [bs, freqs, frames]
-        #cnn
-        if self.n_input_ch > 1:
-            x = x.transpose(2, 3)
-        else:
-            x = x.transpose(1, 2).unsqueeze(1) #x size : [bs, chan, frames, freqs]
+        x = self.apply_specaugment(x)
         x = self.cnn(x)
         bs, ch, frame, freq = x.size()
         if freq != 1:
             print("warning! frequency axis is large: " + str(freq))
             x = x.permute(0, 2, 1, 3)
-            x = x.contiguous.view(bs, frame, ch*freq)
+            x = x.contiguous().view(bs, frame, ch*freq)
         else:
             x = x.squeeze(-1)
             x = x.permute(0, 2, 1) # x size : [bs, frames, chan]
@@ -218,3 +233,11 @@ class CRNN(nn.Module):
             weak = strong.mean(1)
 
         return weak
+
+if __name__=="__main__":
+    path = "Your Yaml file path"
+    with open(path, "r") as f:
+        configs = yaml.safe_load(f)
+    x = torch.randn([24,1,626,128])
+    net = CRNN(**configs['CRNN'])
+    print(net(x).shape)
