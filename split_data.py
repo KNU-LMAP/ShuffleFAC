@@ -11,8 +11,8 @@ RAW_ROOT = "/home/user/Deepship/data"                 # 원본 폴더 (class/REC
 OUT_ROOT = "/home/user/Deepship/preprocessed_data"  # 출력 루트
 CLASSES  = ["Cargo", "Passengership", "Tanker", "Tug"]      # 존재하는 클래스만 자동 처리
 SR       = 16000                                        # 타깃 샘플레이트
-WIN_SEC  = 5.0                                          # 고정 세그먼트 길이(초)
-HOP_SEC  = 5.0                                          # 슬라이싱 간격(=WIN이면 non-overlap)
+WIN_SEC  = 3.0                                          # 고정 세그먼트 길이(초)
+HOP_SEC  = 3.0                                          # 슬라이싱 간격(=WIN이면 non-overlap)
 SPLIT    = (0.7, 0.1, 0.2)                              # (train, val, test)
 SEED     = 42                                           # 고정 시드
 
