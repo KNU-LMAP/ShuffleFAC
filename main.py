@@ -27,7 +27,7 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def train(student, teacher, train_loader, optimizer, criterion, loss_fn_distill, device):
+def kd_train(student, teacher, train_loader, optimizer, criterion, loss_fn_distill, device):
     student.train()
     teacher.eval()
     train_loss = 0.0
@@ -54,6 +54,26 @@ def train(student, teacher, train_loader, optimizer, criterion, loss_fn_distill,
         num_batches += 1
         
     return train_loss / max(1, num_batches)
+
+def train(student, train_loader, optimizer, criterion, device):
+    student.train()
+    loss_student = 0.0
+    num_batches = 0
+
+    for batch_x, batch_y in tqdm(train_loader, total=len(train_loader), desc='Train', leave=False, dynamic_ncols=True):
+        batch_x = batch_x.to(device, non_blocking=True)
+        batch_y = batch_y.to(device, non_blocking=True)
+        optimizer.zero_grad(set_to_none=True)
+
+        student_outputs = student(batch_x)
+        loss_student = criterion(student_outputs, batch_y)
+
+        loss_student.backward()
+        optimizer.step()
+        loss_student += loss_student.item()
+        num_batches += 1
+        
+    return loss_student / max(1, num_batches)
 
 @torch.no_grad()
 def valid(student, val_loader, criterion, device):
@@ -186,7 +206,7 @@ def main():
     num_epochs = 200
     for epoch in range(num_epochs):
         print(f"[Epoch {epoch+1}/{num_epochs}] start", flush=True)
-        train_loss = train(student, teacher,train_loader, optimizer, criterion, loss_fn_distill, device)
+        train_loss = train(student,train_loader, optimizer, criterion, device)
         val_loss, val_acc, val_f1 = valid(student, val_loader, criterion, device)
 
         print(f"epoch {epoch+1}: "
