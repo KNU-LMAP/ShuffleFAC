@@ -15,15 +15,7 @@ class dataset(Dataset):
         self.transform = transform
         self.meta = []
         self.class_name_to_id = class_name_to_id or {"Cargo": 0, "Passengership": 1, "Tanker": 2, "Tug": 3}
-        self.mel_kwargs = mel_kwargs or {
-            "n_mels": 128,
-            "n_fft": 4096,
-            "hop_length": 256,
-            "win_length": 2048,
-            "f_min": 0.0,
-            "f_max": 8000,
-            "power": 1,
-        }
+        self.mel_kwargs = mel_kwargs
 
         if self.data_dir.exists() and self.data_dir.is_dir():
             self.scan_files_with_labels()
@@ -58,6 +50,7 @@ class dataset(Dataset):
             center=True,
             norm=None,
             mel_scale="htk",
+            window_fn=torch.hamming_window
         )
         mels = mel_transform(waveform)
         stype = "magnitude" if power == 1 else "power"
@@ -125,14 +118,7 @@ class dataset(Dataset):
         # mel 스펙트로그램
         mel = self.waveform_to_log_mel(
             waveform=waveform,
-            sample_rate=sample_rate,
-            n_mels=self.mel_kwargs["n_mels"],
-            n_fft=self.mel_kwargs["n_fft"],
-            hop_length=self.mel_kwargs["hop_length"],
-            win_length=self.mel_kwargs["win_length"],
-            f_min=self.mel_kwargs["f_min"],
-            f_max=self.mel_kwargs["f_max"],
-            power=self.mel_kwargs["power"],
+            **self.mel_kwargs
         )
 
         if self.transform is not None:

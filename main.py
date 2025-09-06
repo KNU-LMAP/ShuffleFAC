@@ -57,7 +57,7 @@ def kd_train(student, teacher, train_loader, optimizer, criterion, loss_fn_disti
 
 def train(student, train_loader, optimizer, criterion, device):
     student.train()
-    loss_student = 0.0
+    total_loss = 0.0
     num_batches = 0
 
     for batch_x, batch_y in tqdm(train_loader, total=len(train_loader), desc='Train', leave=False, dynamic_ncols=True):
@@ -70,10 +70,10 @@ def train(student, train_loader, optimizer, criterion, device):
 
         loss_student.backward()
         optimizer.step()
-        loss_student += loss_student.item()
+        total_loss += loss_student.item()
         num_batches += 1
         
-    return loss_student / max(1, num_batches)
+    return total_loss / max(1, num_batches)
 
 @torch.no_grad()
 def valid(student, val_loader, criterion, device):
@@ -141,11 +141,12 @@ def main():
         configs = yaml.safe_load(f)
     crnn_cfg = configs["CRNN"]
     teacher_cfg = configs["teacher"]
+    feats_cfg = configs["feats"]
     # IMPORTANT: make sure this matches your preprocessing output root
     DATA_ROOT = "/home/user/Deepship/preprocessed_data"
-    train_set = dataset(os.path.join(DATA_ROOT, "train"))
-    val_set   = dataset(os.path.join(DATA_ROOT, "val"))
-    test_set  = dataset(os.path.join(DATA_ROOT, "test"))
+    train_set = dataset(os.path.join(DATA_ROOT, "train"), mel_kwargs=feats_cfg)
+    val_set   = dataset(os.path.join(DATA_ROOT, "val"), mel_kwargs=feats_cfg)
+    test_set  = dataset(os.path.join(DATA_ROOT, "test"), mel_kwargs=feats_cfg)
 
     print(f"train/val/test sizes: {len(train_set)}/{len(val_set)}/{len(test_set)}", flush=True)
     if len(train_set) == 0:
@@ -240,4 +241,5 @@ def main():
     print(f"[CodeCarbon] Estimated emissions: {emissions} kg CO2eq")
 
 if __name__ == "__main__":
-    main()
+    for i in range(2):
+        main()
