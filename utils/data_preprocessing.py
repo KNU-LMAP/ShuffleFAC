@@ -31,8 +31,8 @@ class dataset(Dataset):
                              sample_rate: int,
                              n_mels: int = 128,
                              n_fft: int = 4096,
-                             hop_length: int = 256,
-                             win_length: int = 2048,
+                             hop_length: int = 2048,
+                             win_length: int = 4096,
                              f_min: float = 0.0,
                              f_max: float = 8000,
                              power: float = 1,
@@ -61,10 +61,6 @@ class dataset(Dataset):
 
 
     def get_label_from_path(self, file_path: Path) -> Optional[Tuple[str, int]]:
-        """
-        파일 경로의 각 디렉토리 이름을 확인하여 라벨을 추출합니다.
-        예) .../Cargo/xxx.wav -> ("Cargo", 0), .../Passengership/xxx.wav -> ("Passengership", 1)
-        """
         parts = [p for p in file_path.parts]
         for class_name, class_id in self.class_name_to_id.items():
             if class_name in parts:
@@ -72,10 +68,6 @@ class dataset(Dataset):
         return None
 
     def scan_files_with_labels(self, audio_exts: Tuple[str, ...] = (".wav", ".flac", ".mp3", ".ogg")) -> None:
-        """
-        데이터 디렉토리 하위에서 오디오 파일을 재귀적으로 검색하고, 폴더명 기반으로 라벨을 부여하여 self.meta를 구성합니다.
-        self.meta: List[Dict[str, Any]] with keys {"path", "label_name", "label_id"}
-        """
         collected: List[Dict[str, Any]] = []
         print(f"Scanning directory: {self.data_dir}")
         print(f"Class names: {list(self.class_name_to_id.keys())}")

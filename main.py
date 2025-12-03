@@ -1,7 +1,5 @@
-import os, csv, random
-import numpy as np
+import os, csv
 import torch
-import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -10,50 +8,10 @@ import yaml
 from tqdm import tqdm
 from codecarbon import OfflineEmissionsTracker
 
-from utils.model import CRNN
+from model.shuffleFAC import shuffleFAC 
 from utils.data_preprocessing import dataset
 from utils.utils import calculate_macs, count_parameters
 
-# ---------------------
-# Reproducibility
-# ---------------------
-def set_seed(seed: int = 42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    # Optional strict determinism (can slow down, but stable)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-def kd_train(student, teacher, train_loader, optimizer, criterion, loss_fn_distill, device):
-    student.train()
-    teacher.eval()
-    train_loss = 0.0
-    num_batches = 0
-    alpha = 0.7
-    for batch_x, batch_y in tqdm(train_loader, total=len(train_loader), desc='Train', leave=False, dynamic_ncols=True):
-        batch_x = batch_x.to(device, non_blocking=True)
-        batch_y = batch_y.to(device, non_blocking=True)
-        optimizer.zero_grad(set_to_none=True)
-        with torch.no_grad():
-            teacher_outputs = teacher(batch_x)
-        student_outputs = student(batch_x)
-        loss_student = criterion(student_outputs, batch_y)
-
-        loss_distill = loss_fn_distill(
-            F.log_softmax(student_outputs / 4, dim=1),
-            F.softmax(teacher_outputs / 4, dim=1)
-        )
-
-        total_loss = alpha * loss_distill + (1 - alpha) * loss_student
-        total_loss.backward()
-        optimizer.step()
-        train_loss += total_loss.item()
-        num_batches += 1
-        
-    return train_loss / max(1, num_batches)
 
 def train(student, train_loader, optimizer, criterion, device):
     student.train()
@@ -63,7 +21,7 @@ def train(student, train_loader, optimizer, criterion, device):
     for batch_x, batch_y in tqdm(train_loader, total=len(train_loader), desc='Train', leave=False, dynamic_ncols=True):
         batch_x = batch_x.to(device, non_blocking=True)
         batch_y = batch_y.to(device, non_blocking=True)
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad()
 
         student_outputs = student(batch_x)
         loss_student = criterion(student_outputs, batch_y)
@@ -76,7 +34,7 @@ def train(student, train_loader, optimizer, criterion, device):
     return total_loss / max(1, num_batches)
 
 @torch.no_grad()
-def valid(student, val_loader, criterion, device):
+def evaluate(student, val_loader, criterion, device):
     student.eval()
     val_loss = 0.0
     num_batches = 0
@@ -104,49 +62,27 @@ def valid(student, val_loader, criterion, device):
 
     return (val_loss / max(1, num_batches)), val_acc, val_macro_f1
 
-@torch.no_grad()
-def test(student, test_loader, criterion, device):
-    student.eval()
-    test_loss = 0.0
-    num_batches = 0
-    y_true_all = []
-    y_pred_all = []
-
-    for batch_x, batch_y in tqdm(test_loader, total=len(test_loader), desc='Test', leave=False, dynamic_ncols=True):
-        batch_x = batch_x.to(device, non_blocking=True)
-        batch_y = batch_y.to(device, non_blocking=True)
-        outputs = student(batch_x)
-        loss = criterion(outputs, batch_y)
-        test_loss += loss.item()
-        num_batches += 1
-        pred = torch.argmax(outputs, dim=1)
-        y_true_all.append(batch_y.detach().cpu())
-        y_pred_all.append(pred.detach().cpu())
-
-    if len(y_true_all) == 0:
-        return 0.0, 0.0, 0.0
-
-    y_true = torch.cat(y_true_all, dim=0).numpy()
-    y_pred = torch.cat(y_pred_all, dim=0).numpy()
-    test_acc = accuracy_score(y_true, y_pred)
-    test_macro_f1 = f1_score(y_true, y_pred, average='macro')
-    
-    return (test_loss / max(1, num_batches)), test_acc, test_macro_f1
-
+def get_next_exp_dir(base_dir: str = "exp_save_path") -> str:
+    os.makedirs(base_dir, exist_ok=True)
+    version = 1
+    while True:
+        exp_dir_path = os.path.join(base_dir, str(version))
+        if not os.path.exists(exp_dir_path):
+            os.makedirs(exp_dir_path)
+            return exp_dir_path
+        version += 1
 
 def main():
-    set_seed(42)
 
-    with open('/home/user/Deepship/default.yaml', 'r') as f:
+    with open('yaml_path', 'r') as f:
         configs = yaml.safe_load(f)
-    crnn_cfg = configs["CRNN"]
-    teacher_cfg = configs["teacher"]
+    cnn_cfg = configs["CNN"]
     feats_cfg = configs["feats"]
-    # IMPORTANT: make sure this matches your preprocessing output root
-    DATA_ROOT = "/home/user/Deepship/preprocessed_data"
+
+    DATA_ROOT = "data_path"
     train_set = dataset(os.path.join(DATA_ROOT, "train"), mel_kwargs=feats_cfg)
-    val_set   = dataset(os.path.join(DATA_ROOT, "val"), mel_kwargs=feats_cfg)
-    test_set  = dataset(os.path.join(DATA_ROOT, "test"), mel_kwargs=feats_cfg)
+    val_set = dataset(os.path.join(DATA_ROOT, "val"), mel_kwargs=feats_cfg)
+    test_set = dataset(os.path.join(DATA_ROOT, "test"), mel_kwargs=feats_cfg)
 
     print(f"train/val/test sizes: {len(train_set)}/{len(val_set)}/{len(test_set)}", flush=True)
     if len(train_set) == 0:
@@ -160,10 +96,8 @@ def main():
     test_loader  = DataLoader(test_set,  batch_size=48, shuffle=False, num_workers=num_workers, pin_memory=True)
 
     # Model
-    student = CRNN(**crnn_cfg)
-    teacher = CRNN(**teacher_cfg)
-    checkpoint = torch.load('/home/user/Deepship/checkpoints/best_teacher.pt')
-    teacher.load_state_dict(checkpoint['model_state'], strict=False)
+    student = shuffleFAC(**cnn_cfg)
+    print(student)
     macs, _ = calculate_macs(student, configs)
     total_params, trainable_params = count_parameters(student)
 
@@ -176,17 +110,14 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     student = student.to(device)
-    teacher = teacher.to(device)
     optimizer = torch.optim.Adam(student.parameters(), lr=1e-3)
     criterion = nn.CrossEntropyLoss()
-    loss_fn_distill = nn.KLDivLoss(reduction='batchmean')
 
     # Logging / checkpoints
-    log_path = '/home/user/Deepship/training_log.csv'
-    ckpt_dir = '/home/user/Deepship/checkpoints'
-    exp_dir  = '/home/user/Deepship/exp'
-    os.makedirs(exp_dir, exist_ok=True)
-    os.makedirs(ckpt_dir, exist_ok=True)
+    exp_dir = get_next_exp_dir()
+    log_path = os.path.join(exp_dir, 'training_log.csv')
+    best_ckpt_path = os.path.join(exp_dir, 'best.pt') # 체크포인트 이름은 best.pt로 고정
+    print(f"이번 실험 결과는 여기에 저장됩니다: {exp_dir}")
 
     best_f1 = -1.0
     if not os.path.exists(log_path):
@@ -195,12 +126,11 @@ def main():
             writer.writerow(['epoch', 'train_loss', 'val_loss', 'val_acc', 'val_macro_f1'])
 
     # Emissions tracker (covers train+val+test)
-    os.makedirs(os.path.join(exp_dir, "devtest_codecarbon"), exist_ok=True)
     tracker = OfflineEmissionsTracker(
-        "DCASE Task 4 SED EXP",
-        output_dir=os.path.join(exp_dir, "devtest_codecarbon"),
+        "Deepship",
+        output_dir=exp_dir, # 현재 실험 폴더에 저장
         log_level="warning",
-        country_iso_code="KOR",  # set to your actual location; was "FRA"
+        country_iso_code="KOR",
     )
     tracker.start()
 
@@ -208,7 +138,7 @@ def main():
     for epoch in range(num_epochs):
         print(f"[Epoch {epoch+1}/{num_epochs}] start", flush=True)
         train_loss = train(student,train_loader, optimizer, criterion, device)
-        val_loss, val_acc, val_f1 = valid(student, val_loader, criterion, device)
+        val_loss, val_acc, val_f1 = evaluate(student, val_loader, criterion, device)
 
         print(f"epoch {epoch+1}: "
               f"train_loss={train_loss:.4f} "
@@ -224,22 +154,20 @@ def main():
             best_f1 = val_f1
             torch.save(
                 {'epoch': epoch + 1, 'model_state': student.state_dict(), 'best_f1': best_f1},
-                os.path.join(ckpt_dir, 'best.pt')
+                best_ckpt_path # 고정된 경로에 덮어쓰기
             )
-
     # Load best checkpoint for testing
-    best_ckpt = os.path.join(ckpt_dir, 'best.pt')
+    best_ckpt = os.path.join(best_ckpt_path, 'best.pt')
     if os.path.exists(best_ckpt):
         state = torch.load(best_ckpt, map_location=device)
         student.load_state_dict(state['model_state'])
         print(f"Loaded best checkpoint (epoch={state.get('epoch')}, best_f1={state.get('best_f1'):.4f})")
 
-    test_loss, test_acc, test_macro_f1 = test(student, test_loader, criterion, device)
+    test_loss, test_acc, test_macro_f1 = evaluate(student, test_loader, criterion, device)
     print(f"[TEST] loss={test_loss:.4f} acc={test_acc:.4f} macro_f1={test_macro_f1:.4f}")
 
     emissions = tracker.stop()
     print(f"[CodeCarbon] Estimated emissions: {emissions} kg CO2eq")
 
 if __name__ == "__main__":
-    for i in range(2):
-        main()
+    main()
