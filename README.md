@@ -1,8 +1,8 @@
-# ShuffleFAC: Lightweight Frequency-Aware Network for Ship Noise Classification
+# ShuffleFAC: Ultra-Lightweight Ship-Radiated Sound Classification for Real-time Embedded Inference
 
 ## 📌 Overview
 
-ShuffleFAC is an ultra-lightweight neural network designed for **ship-radiated noise classification** in resource-constrained environments.
+ShuffleFAC is an ultra-lightweight neural network designed for **ship-radiated sound classification** in resource-constrained environments.
 It integrates **Frequency-Aware Convolution (FAC)** into an efficient backbone structure using channel shuffle and depthwise separable convolution.
 
 This model is optimized for **real-time embedded deployment**, achieving high performance with minimal computational cost.
@@ -94,7 +94,7 @@ If you use this work, please cite:
 
 ```
 @article{shufflefac2026,
-  title={Ultra-Lightweight Network for Ship-Radiated Sound Classification on Embedded Deployment},
+  title={Ultra-Lightweight Ship-Radiated Sound Classification for Real-time Embedded Inference},
   author={Park, Sangwon et al.},
   year={2026}
 }
