@@ -60,18 +60,11 @@ pip install -r requirements.txt
 
 ## 🚀 Usage
 
-### Train
+### Train & Evaluation
 
 ```bash
-python train.py
+python main.py
 ```
-
-### Evaluation
-
-```bash
-python test.py
-```
-
 ---
 
 ## 📁 Project Structure
@@ -79,11 +72,9 @@ python test.py
 ```bash
 ShuffleFAC/
 ├── model/          # Model architecture
-├── data/           # Dataset handling
-├── train.py        # Training script
-├── test.py         # Evaluation script
+├── main.py         # Training & Evaluation script
 ├── utils/          # Utility functions
-├── config/         # Configurations
+├── default.yaml    # Configurations
 ```
 
 ---
