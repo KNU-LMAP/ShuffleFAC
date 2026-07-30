@@ -52,7 +52,7 @@ cd ShuffleFAC
 ```
 
 ### 2. Environment Setup
-You can set up the environment using `pip` or the provided `Dockerfile`.
+You can set up the environment using `pip`.
 
 ```bash
 python -m venv venv
