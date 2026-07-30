@@ -45,8 +45,6 @@ Performance comparison on the DeepShip dataset (7:1:2 recording-level split, 128
 
 ## ⚙️ Requirements & Installation
 
-We recommend using **Docker** on an **Ubuntu** environment for reproducibility. 
-
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/KNU-LMAP/ShuffleFAC.git
@@ -56,21 +54,11 @@ cd ShuffleFAC
 ### 2. Environment Setup
 You can set up the environment using `pip` or the provided `Dockerfile`.
 
-**Option A: Virtual Environment (Pip)**
 ```bash
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
-
-**Option B: Docker / Singularity**
-```bash
-docker build -t shufflefac:latest .
-docker run --gpus all -it --rm -v $(pwd):/workspace shufflefac:latest
-```
-
-*(Note: We use [Weights & Biases (WandB)](https://wandb.ai/) for experiment tracking. Make sure to log in before training: `wandb login`)*
-
 ---
 
 ## 📁 Dataset Preparation
@@ -80,29 +68,16 @@ We use the **DeepShip** dataset. For reliable generalization assessment, we appl
 1. Download the DeepShip dataset.
 2. Resample all audio files to `16 kHz`.
 3. Generate 3-second non-overlapping clips and convert them to `128-band` log-Mel spectrograms.
-4. Place the processed JSONL manifest files and data in the `data/` directory.
 
 ---
 
 ## 🚀 Execution & Usage
 
-### Training
-
-To train the model from scratch, run the following command. The script utilizes PyTorch and supports WandB logging.
+### Training & Evaluation
 
 ```bash
-python main.py     --model shufflefac_8     --batch_size 48     --lr 0.001     --epochs 200     --use_wandb True     --project_name "ShuffleFAC-DeepShip"
+python main.py
 ```
-
-### Evaluation & Inference (On-Device Test)
-
-To evaluate a trained model checkpoint and benchmark the inference latency (e.g., on a Raspberry Pi):
-
-```bash
-python eval.py     --model shufflefac_8     --checkpoint path/to/best_model.pth     --benchmark_latency True
-```
-*Note: During inference profiling, Batch Normalization (BN) layers are automatically fused into convolution weights to measure the actual deployment latency accurately.*
-
 ---
 
 ## 📎 Citation
@@ -110,11 +85,12 @@ python eval.py     --model shufflefac_8     --checkpoint path/to/best_model.pth 
 If you find this code or our paper useful for your research, please consider citing our work:
 
 ```bibtex
-@article{park2026shufflefac,
+@article{park2026ultra,
   title={Ultra-Lightweight Ship-Radiated Sound Classification for Real-time Embedded Inference},
   author={Park, Sangwon and Kim, Dongjun and Byun, Sung-Hoon and Park, Sangwook},
   journal={IEEE Embedded Systems Letters},
-  year={2026}
+  year={2026},
+  publisher={IEEE}
 }
 ```
 
