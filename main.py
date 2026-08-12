@@ -79,7 +79,7 @@ def main():
     cnn_cfg = configs["CNN"]
     feats_cfg = configs["feats"]
 
-    DATA_ROOT = "data_path"
+    DATA_ROOT = "data_path"  # set your data directory
     train_set = dataset(os.path.join(DATA_ROOT, "train"), mel_kwargs=feats_cfg)
     val_set = dataset(os.path.join(DATA_ROOT, "val"), mel_kwargs=feats_cfg)
     test_set = dataset(os.path.join(DATA_ROOT, "test"), mel_kwargs=feats_cfg)
