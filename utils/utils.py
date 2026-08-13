@@ -21,10 +21,10 @@ def calculate_macs(model, config, dataset=None):
         + 1
     )
     # MACs 계산을 위한 더미 입력: [batch, channel, freq, time]
-    input_size = [1, config["CRNN"]["n_input_ch"], config["feats"]["n_mels"], n_frames]
+    input_size = [1, config["CNN"]["n_input_ch"], config["feats"]["n_mels"], n_frames]
     input = torch.randn(input_size)
 
-    if "use_embeddings" in config["CRNN"] and config["CRNN"]["use_embeddings"]:
+    if "use_embeddings" in config["CNN"] and config["CNN"]["use_embeddings"]:
         audio, label, padded_indxs, path, embeddings = dataset[0]
         embeddings = embeddings.repeat(1, 1, 1)
         macs, params = profile(model, inputs=(input, None, embeddings))
