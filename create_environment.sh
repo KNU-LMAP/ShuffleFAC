@@ -6,5 +6,6 @@ pip install --upgrade pip
 
 conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 pip install thop
+pip install torchaudio
 pip install codecarbon==2.1.4
 pip install -r requirements.txt
