@@ -73,8 +73,8 @@ def get_next_exp_dir(base_dir: str = "exp_save_path") -> str:
         version += 1
 
 def main():
-
-    with open('yaml_path', 'r') as f:
+    yaml_path = 'default.yaml'
+    with open(yaml_path, 'r') as f:
         configs = yaml.safe_load(f)
     cnn_cfg = configs["CNN"]
     feats_cfg = configs["feats"]
